@@ -33,16 +33,27 @@
  */
 #include <uk/arch/limits.h>
 #include <uk/plat/common/common.lds.h>
-
-/* QEMU-AArch64 virt platform's ram base address */
-#define RAM_BASE_ADDR 0x40000000
+#include <xparameters.h>
 
 /* Reserve first 1MB for DTB */
-#define DTB_RESERVED_SIZE 0x100000
+#define DTB_RESERVED_SIZE 0x1000
 
 OUTPUT_FORMAT("elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
-ENTRY(_libplat_entry)
+ENTRY(_boot_zynqmp)
+
+_STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x2000;
+_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x10000;
+
+
+/*
+MEMORY
+{
+	psu_ocm_ram_0_S_AXI_BASEADDR : ORIGIN = 0xFFFC0000, LENGTH = 0x00029D00
+	psu_ocm_ram_1_S_AXI_BASEADDR : ORIGIN = 0xFFFE9E00, LENGTH = 0x00000200
+	psu_ocm_ram_2_S_AXI_BASEADDR : ORIGIN = 0xFFFF0040, LENGTH = 0x0000FDC0
+}
+*/
 
 /*
  * We use mmu to control each section's attribute, so the boundaries
@@ -52,22 +63,24 @@ ENTRY(_libplat_entry)
  * address.
  */
 SECTIONS {
-	. = RAM_BASE_ADDR;
+
+	. = XPAR_PSU_OCM_RAM_0_S_AXI_BASEADDR;
 
 	/* Place DTB binary at the beginning of the RAM */
 	_dtb = .;
 	. = . + DTB_RESERVED_SIZE;
 
+		_text = .;
 	/* Code */
-	_text = .;
 	.text :
 	{
+		KEEP(*(.text.init))
 		*(.text)
-		*(.text.*)
+		*(.text.)
 	}
+		. = ALIGN(__PAGE_SIZE);
+		_etext = .;
 
-	. = ALIGN(__PAGE_SIZE);
-	_etext = .;
 
 	EXCEPTION_SECTIONS
 
@@ -108,15 +121,54 @@ SECTIONS {
 
 	TLS_SECTIONS
 
+	. = ALIGN(__PAGE_SIZE);
+	__mmu_tbl0_start = .;
+	.mmu_tbl0 : {
+		*(.mmu_tbl0)
+	}
+	__mmu_tbl0_end = .;
+
+	. = ALIGN(__PAGE_SIZE);
+   __mmu_tbl1_start = .;
+	.mmu_tbl1 : {
+		*(.mmu_tbl1)
+	} 
+   __mmu_tbl1_end = .;
+
+	. = ALIGN(__PAGE_SIZE);
+   __mmu_tbl2_start = .;
+	.mmu_tbl2 (ALIGN(4096)) : {
+		*(.mmu_tbl2)
+	}
+	__mmu_tbl2_end = .;
+
+
+
+	. = ALIGN(64);
 	/* Read-write data that is initialized explicitly in code */
-	_data = .;
 	.data :
 	{
+		_data = .;
 		*(.data)
 		*(.data.*)
+		_edata = .;
 	}
-	_edata = .;
 	. = ALIGN(__PAGE_SIZE);
+
+	__sbss_start = .;
+	/* Read-write data that is not initialized explicitly in code */
+	.sbss :
+	{
+		*(.sbss)
+		*(.sbss.*)
+		. = ALIGN(__PAGE_SIZE);
+	/*
+	 * TODO
+	 * We can define the stack and page-table here, and free them once
+	 * the boot is done.
+	 */
+	}
+	__sbss_end = .;
 
 	__bss_start = .;
 	/* Read-write data that is not initialized explicitly in code */
@@ -132,9 +184,23 @@ SECTIONS {
 	 * the boot is done.
 	 */
 	}
+	__bss_end = .;
 
 	_end = .;
 
+	_heap_start = .;
+	.heap (NOLOAD) : {
+		. += _HEAP_SIZE;
+	} 
+	_heap_end = .;
+
+	.stack (NOLOAD) : {
+		. = ALIGN(64);
+		_el3_stack_end = .;
+		. += _STACK_SIZE;
+	} 
+	
+	
 	.comment       0 : { *(.comment) }
 	DEBUG_SYMBOLS
 

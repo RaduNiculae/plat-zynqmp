@@ -7,16 +7,21 @@ $(eval $(call addplat_s,zynqmp,$(CONFIG_PLAT_ZYNQMP)))
 ## zynqmp platform library registration
 ##
 $(eval $(call addplatlib,zynqmp,libzynqmpplat))
+$(eval $(call addplatlib_s,zynqmp,libzynqmpofw,$(CONFIG_ZYNQMP_LIBOFW)))
+$(eval $(call addplatlib_s,zynqmp,libzynqmpgicv2,$(CONFIG_ZYNQMP_LIBGICV2)))
+$(eval $(call addplatlib_s,zynqmp,libzynqmpuartps,$(CONFIG_ZYNQMP_UARTPS)))
 
 ##
 ## Platform library definitions
 ##
-LIBZYNQMPPLAT_ASINCLUDES-y+= -I$(LIBZYNQMPPLAT_BASE)/include
+LIBZYNQMPPLAT_DRIVERS_BASE := $(LIBZYNQMPPLAT_BASE)/drivers
 LIBZYNQMPPLAT_ASINCLUDES-y+= -I$(UK_PLAT_COMMON_BASE)/include
 LIBZYNQMPPLAT_CINCLUDES-y += -I$(LIBZYNQMPPLAT_BASE)/include
 LIBZYNQMPPLAT_CINCLUDES-y += -I$(UK_PLAT_COMMON_BASE)/include
 LIBZYNQMPPLAT_CINCLUDES-y += -I$(UK_PLAT_DRIVERS_BASE)/include
+LIBZYNQMPPLAT_ASINCLUDES-y += -I$(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/include
 LIBZYNQMPPLAT_CINCLUDES-y += -I$(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/include
+LIBZYNQMPPLAT_CINCLUDES-y += -I$(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/
 LIBZYNQMPPLAT_ASFLAGS	  += -DZYNQMPPLAT
 LIBZYNQMPPLAT_CFLAGS	  += -DZYNQMPPLAT
 LIBZYNQMPPLAT_CXXFLAGS	  += -DZYNQMPPLAT
@@ -28,16 +33,19 @@ UK_PLAT_ZYNQMP_DEF_LDS := $(LIBZYNQMPPLAT_BASE)/link64.lds.S
 
 ##
 ## Platform Sources
-ifeq ($(findstring y,$(CONFIG_ZYNQMP_KERNEL_SERIAL_CONSOLE) $(CONFIG_ZYNQMP_DEBUG_SERIAL_CONSOLE)),y)
-LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/pl011.c|common
-endif
-
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/cpu_native.c|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/cache64.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/psci_arm64.S|common
-LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/time.c|common
-LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/generic_timer.c|common
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BUILD)/libdts.S
+
+# TODO:
+# Need some kvm specific code that needs to be moved
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/traps.c|common
+
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/time.c|common
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/memory.c|common
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/generic_timer.c|common
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/lcpu.c|common
 
 ifeq ($(CONFIG_HAVE_SCHED),y)
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/thread_start64.S|common
@@ -46,11 +54,68 @@ LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/sw_ctx.c|comm
 endif
 
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/memory.c|arm
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/shutdown.c|arm
+## TODO:
+## This seems like a common file. We could move it to plat/common/arm
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/lcpu.c|arm
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/irq.c|arm
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/entry64.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/exceptions.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/pagetable64.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/setup.c
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_ZYNQMP_DEF_LDS)
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/vector.S
+
+
+## BSP Boot code from xilinx
+## TODO: Replace this code with the common code.
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/gcc/asm_vectors.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/gcc/boot.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/gcc/xil-crt0.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/common/vectors.c
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/gcc/translation_table.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_translation_table_a53_64.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/platform/ZynqMP/gcc/translation_table.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/common/xil_exception.c
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_main.c
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_misc.c
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/common/xplatform_info.c
 
 
 ##
+## zynqmp platform initialization code from xilinx SDK
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += \
+	 $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_initialization.c
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += \
+#	 $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_handoff.c
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += \
+	 $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/sw_apps/zynqmp_fsbl/src/xfsbl_exit.S
+#LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/xil_cache.c
+
+##
+## OFW library definitions
+##
+LIBZYNQMPOFW_CINCLUDES-y         += -I$(LIBZYNQMPPLAT_BASE)/include
+LIBZYNQMPOFW_CINCLUDES-y         += -I$(UK_PLAT_COMMON_BASE)/include
+LIBZYNQMPOFW_CINCLUDES-y         += -I$(UK_PLAT_DRIVERS_BASE)/include
+
+LIBZYNQMPOFW_SRCS-y                  += $(UK_PLAT_DRIVERS_BASE)/ofw/fdt.c
+LIBZYNQMPOFW_SRCS-$(CONFIG_ZYNQMP_LIBGICV2) += $(UK_PLAT_DRIVERS_BASE)/ofw/gic_fdt.c
+
+##
+## GICv2 library definitions
+##
+LIBZYNQMPGICV2_CINCLUDES-y         += -I$(LIBZYNQMPPLAT_BASE)/include
+LIBZYNQMPGICV2_CINCLUDES-y         += -I$(UK_PLAT_COMMON_BASE)/include
+LIBZYNQMPGICV2_CINCLUDES-y         += -I$(UK_PLAT_DRIVERS_BASE)/include
+
+LIBZYNQMPGICV2_SRCS-y += $(UK_PLAT_DRIVERS_BASE)/gic/gic-v2.c
+
+
+##
+## Xilinx UART PS library definitions
+##
+LIBZYNQMPUARTPS_CINCLUDES-y         += -I$(LIBZYNQMPPLAT_BASE)/include
+LIBZYNQMPUARTPS_CINCLUDES-y         += -I$(UK_PLAT_COMMON_BASE)/include
+
+LIBZYNQMPUARTPS_SRCS-y  += $(LIBZYNQMPPLAT_DRIVERS_BASE)/serial/xilinx_uartps.c

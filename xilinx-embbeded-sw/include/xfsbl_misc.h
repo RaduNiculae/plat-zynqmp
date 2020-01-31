@@ -69,11 +69,20 @@ extern "C" {
 
 /************************** Function Prototypes ******************************/
 void XFsbl_PrintArray (u32 DebugType, const u8 Buf[], u32 Len, const char *Str);
+#ifdef CONFIG_HAVE_FLOAT
 s32 XFsbl_Ceil(float Num);
 s32 XFsbl_Round(float Num);
+#endif /* CONFIG_HAVE_FLOAT */
+#ifdef __Unikraft__
+#include <string.h>
+#define XFsbl_Memcpy memcpy
+#define XFsbl_Strcpy strcpy
+#define XFsbl_Strcat strcat
+#else
 void *XFsbl_MemCpy(void * DestPtr, const void * SrcPtr, u32 Len);
 char *XFsbl_Strcpy(char *DestPtr, const char *SrcPtr);
 char * XFsbl_Strcat(char* Str1Ptr, const char* Str2Ptr);
+#endif /* __Unikraft__ */
 void XFsbl_MakeSdFileName(char *XFsbl_SdEmmcFileName,
 		u32 MultibootReg, u32 DrvNum);
 u32 XFsbl_GetDrvNumSD(u32 DeviceFlags);

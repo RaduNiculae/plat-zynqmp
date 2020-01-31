@@ -57,9 +57,11 @@ extern "C" {
 /***************************** Include Files *********************************/
 
 #include "xfsbl_main.h"
+#ifndef __Unikraft__
 #include "xfsbl_csu_dma.h"
-#include "xfsbl_hw.h"
 #include "xcsudma.h"
+#endif /* __Unikraft__ */
+#include "xfsbl_hw.h"
 /************************** Constant Definitions *****************************/
 
 #define PL_DONE_POLL_COUNT  (u32)(10000U)
@@ -97,7 +99,9 @@ u32 XFsbl_PLCheckForDone(void);
 
 /************************** Variable Definitions *****************************/
 
+#ifndef __Unikraft__
 extern XCsuDma CsuDma;  /* CSU DMA instance */
+#endif /* __Unikraft__ */
 
 
 #ifdef __cplusplus

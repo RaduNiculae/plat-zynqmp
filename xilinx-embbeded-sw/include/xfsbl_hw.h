@@ -62,7 +62,9 @@ extern "C" {
 #include "xil_io.h"
 #include "xparameters.h"
 #include "xil_types.h"
+#ifndef __Unikraft__
 #include "sleep.h"
+#endif /* __Unikraft__ */
 
 #include "xfsbl_config.h"
 #include "xfsbl_debug.h"
@@ -987,7 +989,7 @@ extern "C" {
 /* Reset Reason */
 #define XFSBL_SYSTEM_RESET		0U
 #define XFSBL_PS_ONLY_RESET		1U
-#define XFSBL_MASTER_ONLY_RESET	2U
+#define XFSBL_APU_ONLY_RESET    2U
 
 /* AMS PS Sysmon ANALOG_BUS value */
 #define PS_SYSMON_ANALOG_BUS_VAL 0X00003210U

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015 Xilinx, Inc.  All rights reserved.
+* Copyright (C) 2014 - 2015 Xilinx, Inc. All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,71 +23,85 @@
 *
 *
 ******************************************************************************/
-
 /*****************************************************************************/
 /**
+* @file xil_mmu.h
 *
-* @file xfsbl_hooks.h
+* @addtogroup a53_64_mmu_apis Cortex A53 64bit Processor MMU Handling
 *
-* This is the header file which contains definitions for the FSBL hooks
+* MMU function equip users to modify default memory attributes of MMU table as
+* per the need.
+*
+* @{
 *
 * <pre>
 * MODIFICATION HISTORY:
 *
-* Ver   Who  Date        Changes
-* ----- ---- -------- -------------------------------------------------------
-* 1.00  kc   10/21/13 Initial release
-*
+* Ver   Who  Date     Changes
+* ----- ---- -------- ---------------------------------------------------
+* 5.00 	pkp  05/29/14 First release
 * </pre>
 *
 * @note
 *
+* None.
+*
 ******************************************************************************/
-#ifndef XFSBL_HOOKS_H
-#define XFSBL_HOOKS_H
+
+#ifndef XIL_MMU_H
+#define XIL_MMU_H
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
 /***************************** Include Files *********************************/
+
 #include "xil_types.h"
-#include "xfsbl_hw.h"
-
-/************************** Constant Definitions *****************************/
-
-/**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
 
-/************************** Function Prototypes ******************************/
+/**************************** Type Definitions *******************************/
+
+/************************** Constant Definitions *****************************/
+
+/* Memory type */
+#define NORM_NONCACHE 0x401UL 	/* Normal Non-cacheable*/
+#define STRONG_ORDERED 0x409UL	/* Strongly ordered (Device-nGnRnE)*/
+#define DEVICE_MEMORY 0x40DUL	/* Device memory (Device-nGnRE)*/
+#define RESERVED 0x0UL			/* reserved memory*/
+
+/* Normal write-through cacheable inner shareable*/
+#define NORM_WT_CACHE 0x711UL
+
+/* Normal write back cacheable inner-shareable */
+#define NORM_WB_CACHE 0x705UL
+
+/*
+ * shareability attribute only applicable to
+ * normal cacheable memory
+ */
+#define INNER_SHAREABLE (0x3 << 8)
+#define OUTER_SHAREABLE (0x2 << 8)
+#define NON_SHAREABLE	(~(0x3 << 8))
+
+/* Execution type */
+#define EXECUTE_NEVER ((0x1 << 53) | (0x1 << 54))
+
+/* Security type */
+#define NON_SECURE	(0x1 << 5)
 
 /************************** Variable Definitions *****************************/
 
-#ifndef __Unikraft__
-u32 XFsbl_HookBeforeBSDownload(void );
+/************************** Function Prototypes ******************************/
 
-u32 XFsbl_HookAfterBSDownload(void );
-
-u32 XFsbl_HookBeforeHandoff(u32 EarlyHandoff);
-
-u32 XFsbl_HookBeforeFallback(void);
-
-u32 XFsbl_HookPsuInit(void);
-
-u32 XFsbl_HookGetPosBootType(void);
-#else
-#define XFsbl_HookBeforeBSDownload
-#define XFsbl_HookAfterBSDownload
-#define XFsbl_HookBeforeHandoff
-#define XFsbl_HookBeforeFallback
-#define XFsbl_HookPsuInit
-#define XFsbl_HookGetPosBootType
-
-#endif /* __Unikraft__ */
+void Xil_SetTlbAttributes(UINTPTR Addr, u64 attrib);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif  /* XFSBL_HOOKS_H */
+#endif /* XIL_MMU_H */
+/**
+* @} End of "addtogroup a53_64_mmu_apis".
+*/

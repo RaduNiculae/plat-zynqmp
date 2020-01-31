@@ -76,8 +76,13 @@
 #include "xfsbl_hooks.h"
 #include "xfsbl_bs.h"
 #include "xfsbl_usb.h"
+#ifdef CONFIG_SECURE_BOOT
 #include "xfsbl_authentication.h"
+#endif /* CONFIG_SECURE_BOOT */
 #include "xfsbl_ddr_init.h"
+#ifdef __Unikraft__
+#include <uk/plat/common/sections.h>
+#endif /* __Unikraft__ */
 
 /************************** Constant Definitions *****************************/
 #define PART_NAME_LEN_MAX		20U
@@ -115,8 +120,11 @@ void XFsbl_RegisterHandlers(void);
 
 
 /************************** Variable Definitions *****************************/
+#ifndef __Unikraft__
 extern XFsblPs FsblInstance;
+#endif /* __Unikraft__ */
 
+#ifndef __Unikraft__
 #ifdef __clang__
 extern u8 Image$$DATA_SECTION$$Base;
 extern u8 Image$$DATA_SECTION$$Limit;
@@ -126,7 +134,9 @@ extern  u8 __data_start;
 extern  u8 __data_end;
 extern  u8 __dup_data_start;
 #endif
+#endif /* __Unikraft__ */
 
+#ifndef __Unikraft__
 #ifndef XFSBL_BS
 #ifdef __clang__
 u8 ReadBuffer[XFSBL_SIZE_IMAGE_HDR]
@@ -138,12 +148,17 @@ u8 ReadBuffer[XFSBL_SIZE_IMAGE_HDR]
 #else
 extern u8 ReadBuffer[READ_BUFFER_SIZE];
 #endif
+#else
+extern u8 ReadBuffer[READ_BUFFER_SIZE];
+#endif /* __Unikraft__ */
 
+#ifndef __Unikraft__
 #ifdef XFSBL_SECURE
 u8 *ImageHdr = ReadBuffer;
 extern u8 AuthBuffer[XFSBL_AUTH_BUFFER_SIZE];
 extern u32 Iv[XIH_BH_IV_LENGTH / 4U];
 #endif
+#endif /* __Unikraft */
 
 /****************************************************************************/
 /**
@@ -157,6 +172,7 @@ extern u32 Iv[XIH_BH_IV_LENGTH / 4U];
  * @note
  *
  *****************************************************************************/
+#ifdef CONFIG_SUPPORT_RESET
 void XFsbl_SaveData(void)
 {
 	const u8 *MemPtr;
@@ -175,6 +191,7 @@ void XFsbl_SaveData(void)
 	*ContextMemPtr = *MemPtr;
     }
 }
+#endif /* CONFIG_SUPPORT_RESET */
 
 /****************************************************************************/
 /**
@@ -188,9 +205,11 @@ void XFsbl_SaveData(void)
  * @note
  *
  *****************************************************************************/
+#ifdef CONFIG_SUPPORT_RESET
 void XFsbl_RestoreData(void)
 {
 	u8 *MemPtr;
+
 #ifdef __clang__
       u8 *ContextMemPtr = (u8 *)&Image$$DATA_SECTION$$Base;
 #else
@@ -206,6 +225,7 @@ void XFsbl_RestoreData(void)
 	*MemPtr = *ContextMemPtr;
     }
 }
+#endif /* CONFIG_SUPPORT_RESET */
 
 /****************************************************************************/
 /**
@@ -230,19 +250,25 @@ static u32 XFsbl_GetResetReason (void)
 		Val = CRL_APB_RESET_REASON_PSONLY_RESET_REQ_MASK;
 		XFsbl_Out32(CRL_APB_RESET_REASON, Val);
 		Ret = XFSBL_PS_ONLY_RESET;
+#ifdef CONFIG_SUPPORT_RESET
 		XFsbl_SaveData();
+#endif /* CONFIG_SUPPORT_RESET */
 	}
 	else
 	{
 		Ret = (XFsbl_In32(PMU_GLOBAL_GLOB_GEN_STORAGE4) & XFSBL_APU_RESET_MASK)>>(XFSBL_APU_RESET_BIT);
 
 		if(Ret == XFSBL_SYSTEM_RESET){
+#ifdef CONFIG_SUPPORT_RESET
 			XFsbl_SaveData();
+#endif /* CONFIG_SUPPORT_RESET */
 		}
 		else
 		{
-			Ret = XFSBL_MASTER_ONLY_RESET;
+			Ret = XFSBL_APU_ONLY_RESET;
+#ifdef CONFIG_SUPPORT_RESET
 			XFsbl_RestoreData();
+#endif /* CONFIG_SUPPORT_RESET */
 		}
 	}
 
@@ -275,6 +301,7 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 
 	FsblInstancePtr->ResetReason = XFsbl_GetResetReason();
 
+#if 0
 	/*
 	 * Enables the propagation of the PROG signal to PL
 	 */
@@ -286,12 +313,13 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 	/**
 	 * Configure the system as in PSU
 	 */
-	if (XFSBL_MASTER_ONLY_RESET != FsblInstancePtr->ResetReason) {
+	if (XFSBL_APU_ONLY_RESET != FsblInstancePtr->ResetReason) {
 		Status = XFsbl_SystemInit(FsblInstancePtr);
 		if (XFSBL_SUCCESS != Status) {
 			goto END;
 		}
 	}
+#endif
 
 	/**
 	 * Place AES and SHA engines in reset
@@ -305,13 +333,16 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 	 */
 	XFsbl_PrintFsblBanner();
 
+
 	/* Initialize the processor */
 	Status = XFsbl_ProcessorInit(FsblInstancePtr);
 	if (XFSBL_SUCCESS != Status) {
 		goto END;
 	}
 
-	if (XFSBL_MASTER_ONLY_RESET == FsblInstancePtr->ResetReason) {
+
+
+	if (XFSBL_APU_ONLY_RESET == FsblInstancePtr->ResetReason) {
 
 		if (FsblInstancePtr->ProcessorID == XIH_PH_ATTRB_DEST_CPU_A53_0) {
 			/* APU only restart with pending interrupts can cause the linux
@@ -322,7 +353,8 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 		}
 	}
 
-	if (XFSBL_MASTER_ONLY_RESET != FsblInstancePtr->ResetReason) {
+
+	if (XFSBL_APU_ONLY_RESET != FsblInstancePtr->ResetReason) {
 		/* Do ECC Initialization of TCM if required */
 		Status = XFsbl_TcmInit(FsblInstancePtr);
 		if (XFSBL_SUCCESS != Status) {
@@ -357,7 +389,7 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 #if defined(XFSBL_PL_CLEAR) && defined(XFSBL_BS)
 		/* In case of PS only reset and APU only reset skipping PCAP initialization*/
 		if ((XFSBL_PS_ONLY_RESET != FsblInstancePtr->ResetReason)&&
-			(XFSBL_MASTER_ONLY_RESET != FsblInstancePtr->ResetReason)) {
+			(XFSBL_APU_ONLY_RESET != FsblInstancePtr->ResetReason)) {
 			Status = XFsbl_PcapInit();
 			if (XFSBL_SUCCESS != Status) {
 				goto END;
@@ -366,10 +398,12 @@ u32 XFsbl_Initialize(XFsblPs * FsblInstancePtr)
 #endif
 
 	/* Do board specific initialization if any */
+#ifndef __Unikraft__
 	Status = XFsbl_BoardInit();
 	if (XFSBL_SUCCESS != Status) {
 		goto END;
 	}
+#endif /* __Unikraft__ */
 
 	/**
 	 * Validate the reset reason
@@ -386,6 +420,7 @@ END:
 }
 
 
+#if 0
 /*****************************************************************************/
 /**
  * This function initializes the primary and secondary boot devices
@@ -466,6 +501,7 @@ void XFsbl_EnableProgToPL(void)
 
 	Xil_Out32 (PMU_GLOBAL_PS_CNTRL, RegVal);
 }
+#endif /* DISABLE */
 
 /*****************************************************************************/
 /**
@@ -558,11 +594,13 @@ static u32 XFsbl_ProcessorInit(XFsblPs * FsblInstancePtr)
 			Index += 4U;
 		}
 
+#ifndef __Unikraft__
 		/**
 		 * Make sure that Low Vector locations are written Properly.
 		 * Flush the cache
 		 */
 		Xil_DCacheFlush();
+#endif /* !__Unikraft__ */
 
 	} else {
 		Status = XFSBL_ERROR_UNSUPPORTED_CLUSTER_ID;
@@ -585,10 +623,15 @@ static u32 XFsbl_ProcessorInit(XFsblPs * FsblInstancePtr)
 	(void)XFsbl_Strcat(DevName, XFsbl_GetProcEng());
 	XFsbl_Printf(DEBUG_GENERAL, ", Device Name: %s\n\r", DevName);
 
+/**
+ * For Unikraft the exeception handler are register as a part of the boot code.
+ */
+#ifndef __Unikraft__
 	/**
 	 * Register the exception handlers
 	 */
 	XFsbl_RegisterHandlers();
+#endif /* __Unikraft__ */
 
 	/* Prints for the perf measurement */
 #ifdef XFSBL_PERF
@@ -623,6 +666,7 @@ static u32 XFsbl_ProcessorInit(XFsblPs * FsblInstancePtr)
 END:
 	return Status;
 }
+
 
 /*****************************************************************************/
 /**
@@ -693,6 +737,7 @@ END:
 	return Status;
 }
 
+#if 0
 /*****************************************************************************/
 /**
  * This function initializes the system using the psu_init()
@@ -736,7 +781,7 @@ static u32 XFsbl_SystemInit(XFsblPs * FsblInstancePtr)
 				goto END;
 			}
 		}
-	} else if (XFSBL_MASTER_ONLY_RESET == FsblInstancePtr->ResetReason) {
+	} else if (XFSBL_APU_ONLY_RESET == FsblInstancePtr->ResetReason) {
 		/*Do nothing*/
 	} else {
         /**
@@ -864,7 +909,7 @@ static u32 XFsbl_PrimaryBootDeviceInit(XFsblPs * FsblInstancePtr)
 		 * Skip watching over APU using WDT during APU only restart
 		 * as PMU will watchover APU
 		 */
-		if (XFSBL_MASTER_ONLY_RESET != FsblInstance.ResetReason) {
+		if (XFSBL_APU_ONLY_RESET != FsblInstance.ResetReason) {
 			Status = XFsbl_InitWdt();
 			if (XFSBL_SUCCESS != Status) {
 				XFsbl_Printf(DEBUG_GENERAL,"WDT initialization failed \n\r");
@@ -1560,6 +1605,7 @@ static u32 XFsbl_SecondaryBootDeviceInit(XFsblPs * FsblInstancePtr)
 END:
 	return Status;
 }
+#endif 
 
 /*****************************************************************************/
 /**
@@ -1581,7 +1627,9 @@ static u32 XFsbl_EccInit(u64 DestAddr, u64 LengthBytes)
 	u64 StartAddr = DestAddr;
 	u64 NumBytes = LengthBytes;
 
+#ifndef __Unikraft__
 	Xil_DCacheDisable();
+#endif /* __Unikraft__ */
 
 	while (NumBytes > 0U) {
 		if (NumBytes > ZDMA_TRANSFER_MAX_LEN) {
@@ -1642,7 +1690,9 @@ static u32 XFsbl_EccInit(u64 DestAddr, u64 LengthBytes)
 		RegVal = XFsbl_In32(ADMA_CH0_ZDMA_CH_STATUS);
 		if (RegVal == ADMA_CH0_ZDMA_CH_STATUS_STATE_ERR) {
 			Status = XFSBL_FAILURE;
+#ifndef __Unikraft__
 			Xil_DCacheEnable();
+#endif /* __Unikraft__ */
 			goto END;
 		}
 
@@ -1650,7 +1700,9 @@ static u32 XFsbl_EccInit(u64 DestAddr, u64 LengthBytes)
 		StartAddr += Length;
 	}
 
+#ifndef __Unikraft__
 	Xil_DCacheEnable();
+#endif /* __Unikraft__ */
 
 	/* Restore reset values for the DMA registers used */
 	XFsbl_Out32(ADMA_CH0_ZDMA_CH_CTRL0, 0x00000080U);
@@ -1942,6 +1994,8 @@ static void XFsbl_ClearPendingInterrupts(void)
 
 }
 
+#if 0
+
 /*****************************************************************************/
 /**
  * This function marks DDR region as "Reserved" or mark as "Memory".
@@ -1989,3 +2043,4 @@ void XFsbl_MarkDdrAsReserved(u8 Cond)
 #endif
 #endif
 }
+#endif /* DISABLING_REST */

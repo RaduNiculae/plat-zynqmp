@@ -1,11 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Simon Kuenzer <simon.kuenzer@neclab.eu>
- *          Wei Chen <Wei.Chen@arm.com>
- *          Sharan Santhanam <sharan.santhanam@neclab.eu>
+ * Authors: Wei Chen <wei.chen@arm.com>
  *
- * Copyright (c) 2019, NEC Laboratories Europe GmbH, NEC Corporation,
- *                     All rights reserved.
  * Copyright (c) 2018, Arm Ltd., All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,30 +31,40 @@
  *
  * THIS HEADER MAY NOT BE EXTRACTED OR MODIFIED IN ANY WAY.
  */
+#include <stdint.h>
+#include <uk/plat/lcpu.h>
+#include <arm/irq.h>
 
-#ifndef __ZYNQMP_CONFIG_H__
-#define __ZYNQMP_CONFIG_H__
+void ukplat_lcpu_enable_irq(void)
+{
+	local_irq_enable();
+}
 
-#include <uk/config.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <uk/plat/memory.h>
-#include <xfsbl_main.h>
+void ukplat_lcpu_disable_irq(void)
+{
+	local_irq_disable();
+}
 
+unsigned long ukplat_lcpu_save_irqf(void)
+{
+	unsigned long flags;
 
-/**
- * zynqmp platform configuration
- */
-struct zynqmpplat_config {
-	struct ukplat_memregion_desc heap;
-	struct ukplat_memregion_desc bstack;
+	local_irq_save(flags);
 
-	struct ukplat_memregion_desc pagetable;
-	struct ukplat_memregion_desc dtb;
-	XFsblPs xfsblps;
-};
+	return flags;
+}
 
-/* Initialized and defined in setup.c */
-extern struct zynqmpplat_config _libzynqmpplat_cfg;
+void ukplat_lcpu_restore_irqf(unsigned long flags)
+{
+	local_irq_restore(flags);
+}
 
-#endif /* __ZYNQMP_CONFIG_H__ */
+int ukplat_lcpu_irqs_disabled(void)
+{
+	return irqs_disabled();
+}
+
+void ukplat_lcpu_irqs_handle_pending(void)
+{
+	// TODO
+}

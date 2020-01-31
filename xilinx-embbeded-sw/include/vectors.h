@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015 Xilinx, Inc.  All rights reserved.
+* Copyright (C) 2009 - 2016 Xilinx, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,71 +23,60 @@
 *
 *
 ******************************************************************************/
-
 /*****************************************************************************/
 /**
+* @file vectors.h
 *
-* @file xfsbl_hooks.h
-*
-* This is the header file which contains definitions for the FSBL hooks
+* This file contains the C level vector prototypes for the ARM Cortex A9 core.
 *
 * <pre>
 * MODIFICATION HISTORY:
 *
-* Ver   Who  Date        Changes
-* ----- ---- -------- -------------------------------------------------------
-* 1.00  kc   10/21/13 Initial release
-*
+* Ver   Who  Date     Changes
+* ----- ---- -------- ---------------------------------------------------
+* 1.00a ecm  10/20/10 Initial version, moved over from bsp area
+* 6.0   mus  07/27/16 Consolidated vectors for a9,a53 and r5 processors
 * </pre>
 *
 * @note
 *
+* None.
+*
 ******************************************************************************/
-#ifndef XFSBL_HOOKS_H
-#define XFSBL_HOOKS_H
+
+#ifndef _VECTORS_H_
+#define _VECTORS_H_
+
+/***************************** Include Files *********************************/
+
+#include "xil_types.h"
+#include "xil_assert.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/***************************** Include Files *********************************/
-#include "xil_types.h"
-#include "xfsbl_hw.h"
-
-/************************** Constant Definitions *****************************/
+/***************** Macros (Inline Functions) Definitions *********************/
 
 /**************************** Type Definitions *******************************/
 
-/***************** Macros (Inline Functions) Definitions *********************/
+/************************** Constant Definitions *****************************/
 
 /************************** Function Prototypes ******************************/
 
-/************************** Variable Definitions *****************************/
-
-#ifndef __Unikraft__
-u32 XFsbl_HookBeforeBSDownload(void );
-
-u32 XFsbl_HookAfterBSDownload(void );
-
-u32 XFsbl_HookBeforeHandoff(u32 EarlyHandoff);
-
-u32 XFsbl_HookBeforeFallback(void);
-
-u32 XFsbl_HookPsuInit(void);
-
-u32 XFsbl_HookGetPosBootType(void);
+void FIQInterrupt(void);
+void IRQInterrupt(void);
+#if !defined (__aarch64__)
+void SWInterrupt(void);
+void DataAbortInterrupt(void);
+void PrefetchAbortInterrupt(void);
+void UndefinedException(void);
 #else
-#define XFsbl_HookBeforeBSDownload
-#define XFsbl_HookAfterBSDownload
-#define XFsbl_HookBeforeHandoff
-#define XFsbl_HookBeforeFallback
-#define XFsbl_HookPsuInit
-#define XFsbl_HookGetPosBootType
-
-#endif /* __Unikraft__ */
+void SynchronousInterrupt(void);
+void SErrorInterrupt(void);
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* XFSBL_HOOKS_H */
+#endif /* protection macro */

@@ -20,3 +20,44 @@ config AVNET_ULTRA96_V2
 		The platform supports version 2 of Avnet Ultra 96.
 endmenu
 endif
+
+if PLAT_ZYNQMP
+menu "Driver Support for ZynqMP"
+
+config ZYNQMP_KERNEL_SERIAL_CONSOLE
+        bool "Serial console for the kernel prints"
+        default y
+        depends on ARCH_ARM_64
+        help
+		Choose serial console for the kernel printing
+
+config ZYNQMP_DEBUG_SERIAL_CONSOLE
+        bool "Serial console for the debug prints"
+	default y
+        depends on ARCH_ARM_64
+	help
+          Choose serial console for the debug printing
+
+
+## TODO: Make the driver to a common base
+config ZYNQMP_LIBGICV2
+       bool "Arm GIC (generic interrupt controller) v2 library support"
+       default y if ARCH_ARM_64
+       select ZYNQMP_LIBOFW
+       depends on ARCH_ARM_64
+
+config ZYNQMP_LIBOFW
+       bool "Open Firmware library support"
+       default n
+       depends on ARCH_ARM_64
+       select LIBFDT
+
+config ZYNQMP_UARTPS
+	bool "Console driver for Xilinx UARTPS"
+	default y if (ZYNQMP_KERNEL_SERIAL_CONSOLE || \
+			ZYNQMP_DEBUG_SERIAL_CONSOLE)
+	help
+		Zynq UARTPS compatible device driver.
+
+endmenu
+endif

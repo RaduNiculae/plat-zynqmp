@@ -57,6 +57,7 @@ extern "C" {
 
 /***************************** Include Files *********************************/
 #include "xfsbl_hw.h"
+#ifndef __Unikraft__
 #if defined(XPS_BOARD_ZCU102) || defined(XPS_BOARD_ZCU106)		\
 		|| defined(XPS_BOARD_ZCU104) || defined(XPS_BOARD_ZCU111)
 #include "xiicps.h"
@@ -195,6 +196,7 @@ typedef struct XVoutCommands {
 
 /************************** Function Prototypes ******************************/
 #endif
+#endif /* __Unikraft__ */
 u32 XFsbl_BoardInit(void);
 
 #ifdef __cplusplus

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015 Xilinx, Inc.  All rights reserved.
+* Copyright (C) 2014 - 2015 Xilinx, Inc. All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,71 +23,54 @@
 *
 *
 ******************************************************************************/
-
 /*****************************************************************************/
 /**
 *
-* @file xfsbl_hooks.h
+* @file xpseudo_asm.h
 *
-* This is the header file which contains definitions for the FSBL hooks
+* @addtogroup a53_64_specific Cortex A53 64bit Processor Specific Include Files
+*
+* The xpseudo_asm.h includes xreg_cortexa53.h and xpseudo_asm_gcc.h.
+* The xreg_cortexa53.h file contains definitions for inline assembler code.
+* It provides inline definitions for Cortex A53 GPRs, SPRs and floating point
+* registers.
+*
+* The xpseudo_asm_gcc.h contains the definitions for the most often used inline
+* assembler instructions, available as macros. These can be very useful for
+* tasks such as setting or getting special purpose registers, synchronization,
+* or cache manipulation etc. These inline assembler instructions can be used
+* from drivers and user applications written in C.
+*
+* @{
 *
 * <pre>
 * MODIFICATION HISTORY:
 *
-* Ver   Who  Date        Changes
-* ----- ---- -------- -------------------------------------------------------
-* 1.00  kc   10/21/13 Initial release
-*
+* Ver   Who  Date     Changes
+* ----- ---- -------- -----------------------------------------------
+* 5.00 	pkp  05/29/14 First release
 * </pre>
 *
-* @note
-*
 ******************************************************************************/
-#ifndef XFSBL_HOOKS_H
-#define XFSBL_HOOKS_H
+#ifndef XPSEUDO_ASM_H
+#define XPSEUDO_ASM_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/***************************** Include Files *********************************/
-#include "xil_types.h"
-#include "xfsbl_hw.h"
-
-/************************** Constant Definitions *****************************/
-
-/**************************** Type Definitions *******************************/
-
-/***************** Macros (Inline Functions) Definitions *********************/
-
-/************************** Function Prototypes ******************************/
-
-/************************** Variable Definitions *****************************/
-
-#ifndef __Unikraft__
-u32 XFsbl_HookBeforeBSDownload(void );
-
-u32 XFsbl_HookAfterBSDownload(void );
-
-u32 XFsbl_HookBeforeHandoff(u32 EarlyHandoff);
-
-u32 XFsbl_HookBeforeFallback(void);
-
-u32 XFsbl_HookPsuInit(void);
-
-u32 XFsbl_HookGetPosBootType(void);
+#include "xreg_cortexa53.h"
+#ifdef __clang__
+#include "xpseudo_asm_armclang.h"
 #else
-#define XFsbl_HookBeforeBSDownload
-#define XFsbl_HookAfterBSDownload
-#define XFsbl_HookBeforeHandoff
-#define XFsbl_HookBeforeFallback
-#define XFsbl_HookPsuInit
-#define XFsbl_HookGetPosBootType
-
-#endif /* __Unikraft__ */
+#include "xpseudo_asm_gcc.h"
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* XFSBL_HOOKS_H */
+#endif /* XPSEUDO_ASM_H */
+/**
+* @} End of "addtogroup a53_64_specific".
+*/

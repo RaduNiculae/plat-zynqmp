@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015 Xilinx, Inc.  All rights reserved.
+* Copyright (C) 2017 Xilinx, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,71 +23,65 @@
 *
 *
 ******************************************************************************/
-
 /*****************************************************************************/
 /**
 *
-* @file xfsbl_hooks.h
+* @file xil_errata.h
 *
-* This is the header file which contains definitions for the FSBL hooks
+* @addtogroup a53_errata Cortex A53 64 bit Processor Errata Support
+* @{
+* Various ARM errata are handled in the standalone BSP. The implementation for
+* errata handling follows ARM guidelines and is based on the open source Linux
+* support for these errata.
+*
+* @note
+* The errata handling is enabled by default. To disable handling of all the
+* errata globally, un-define the macro ENABLE_ARM_ERRATA in xil_errata.h. To
+* disable errata on a per-erratum basis, un-define relevant macros in
+* xil_errata.h.
 *
 * <pre>
 * MODIFICATION HISTORY:
 *
-* Ver   Who  Date        Changes
-* ----- ---- -------- -------------------------------------------------------
-* 1.00  kc   10/21/13 Initial release
-*
+* Ver   Who  Date     Changes
+* ----- ---- -------- -----------------------------------------------
+* 6.4   mus  08/11/17 First release
 * </pre>
 *
-* @note
-*
 ******************************************************************************/
-#ifndef XFSBL_HOOKS_H
-#define XFSBL_HOOKS_H
+#ifndef XIL_ERRATA_H
+#define XIL_ERRATA_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/***************************** Include Files *********************************/
-#include "xil_types.h"
-#include "xfsbl_hw.h"
+/**
+ * @name errata_definitions
+ *
+ * The errata conditions handled in the standalone BSP are listed below
+ * @{
+ */
 
-/************************** Constant Definitions *****************************/
+#define ENABLE_ARM_ERRATA 1
 
-/**************************** Type Definitions *******************************/
+#ifdef ENABLE_ARM_ERRATA
 
-/***************** Macros (Inline Functions) Definitions *********************/
+/**
+ *  Errata No: 855873
+ *  Description: An eviction might overtake a cache clean operation
+ */
+#define CONFIG_ARM_ERRATA_855873 1
 
-/************************** Function Prototypes ******************************/
 
-/************************** Variable Definitions *****************************/
-
-#ifndef __Unikraft__
-u32 XFsbl_HookBeforeBSDownload(void );
-
-u32 XFsbl_HookAfterBSDownload(void );
-
-u32 XFsbl_HookBeforeHandoff(u32 EarlyHandoff);
-
-u32 XFsbl_HookBeforeFallback(void);
-
-u32 XFsbl_HookPsuInit(void);
-
-u32 XFsbl_HookGetPosBootType(void);
-#else
-#define XFsbl_HookBeforeBSDownload
-#define XFsbl_HookAfterBSDownload
-#define XFsbl_HookBeforeHandoff
-#define XFsbl_HookBeforeFallback
-#define XFsbl_HookPsuInit
-#define XFsbl_HookGetPosBootType
-
-#endif /* __Unikraft__ */
+/*@}*/
+#endif  /* ENABLE_ARM_ERRATA */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* XFSBL_HOOKS_H */
+#endif  /* XIL_ERRATA_H */
+/**
+* @} End of "addtogroup a53_errata".
+*/
