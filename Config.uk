@@ -18,6 +18,14 @@ config AVNET_ULTRA96_V2
 	default n
 	help
 		The platform supports version 2 of Avnet Ultra 96.
+
+config PLAT_ZYNQMP_IRQ_LATENCY_GATHER
+	bool "Gather irq statistics"
+	default n
+	imply IRQ_LATENCY_GATHER
+	help
+		The option determines the IRQ statistics. The option computes
+		stats on the time spent on the irq handler.
 endmenu
 endif
 
@@ -58,6 +66,12 @@ config ZYNQMP_UARTPS
 			ZYNQMP_DEBUG_SERIAL_CONSOLE)
 	help
 		Zynq UARTPS compatible device driver.
+	
+config ZYNQMP_XLNX_RTC
+	bool "RTC driver for the Xilinx rtc device"
+	default y
+	help
+		ZynqMP RTC compatible xlnx-zynmp.rtc
 
 endmenu
 endif

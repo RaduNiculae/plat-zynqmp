@@ -10,6 +10,7 @@ $(eval $(call addplatlib,zynqmp,libzynqmpplat))
 $(eval $(call addplatlib_s,zynqmp,libzynqmpofw,$(CONFIG_ZYNQMP_LIBOFW)))
 $(eval $(call addplatlib_s,zynqmp,libzynqmpgicv2,$(CONFIG_ZYNQMP_LIBGICV2)))
 $(eval $(call addplatlib_s,zynqmp,libzynqmpuartps,$(CONFIG_ZYNQMP_UARTPS)))
+$(eval $(call addplatlib_s,zynqmp,libzynqmpxlnxrtc,$(CONFIG_ZYNQMP_XLNX_RTC)))
 
 ##
 ## Platform library definitions
@@ -26,6 +27,7 @@ LIBZYNQMPPLAT_ASFLAGS	  += -DZYNQMPPLAT
 LIBZYNQMPPLAT_CFLAGS	  += -DZYNQMPPLAT
 LIBZYNQMPPLAT_CXXFLAGS	  += -DZYNQMPPLAT
 LIBZYNQMPPLAT_CFLAGS	  += -DARMA53_64
+LIBZYNQMPPLAT_CFLAGS	  += -save-temps=obj
 
 ##
 ## Default Linker script
@@ -59,6 +61,7 @@ LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/shutdown.c|arm
 ## This seems like a common file. We could move it to plat/common/arm
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/lcpu.c|arm
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/irq.c|arm
+LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBZYNQMPPLAT_BASE)/intctrl.c|arm
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/entry64.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/exceptions.S|common
 LIBZYNQMPPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(UK_PLAT_COMMON_BASE)/arm/pagetable64.S|common
@@ -117,5 +120,16 @@ LIBZYNQMPGICV2_SRCS-y += $(UK_PLAT_DRIVERS_BASE)/gic/gic-v2.c
 ##
 LIBZYNQMPUARTPS_CINCLUDES-y         += -I$(LIBZYNQMPPLAT_BASE)/include
 LIBZYNQMPUARTPS_CINCLUDES-y         += -I$(UK_PLAT_COMMON_BASE)/include
-
 LIBZYNQMPUARTPS_SRCS-y  += $(LIBZYNQMPPLAT_DRIVERS_BASE)/serial/xilinx_uartps.c
+
+##
+## Xilinx RTC library definitions
+##
+LIBZYNQMPXLNXRTC_CINCLUDES-y         += -I$(LIBZYNQMPPLAT_BASE)/include
+LIBZYNQMPXLNXRTC_CINCLUDES-y         += -I$(UK_PLAT_COMMON_BASE)/include
+LIBZYNQMPXLNXRTC_CINCLUDES-y         += -I$(UK_PLAT_DRIVERS_BASE)/include
+LIBZYNQMPXLNXRTC_CINCLUDES-y	+= -I$(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/include
+LIBZYNQMPXLNXRTC_CINCLUDES-y 	+= -I$(LIBZYNQMPPLAT_BASE)/xilinx-embbeded-sw/lib/bsp/standalone/src/arm/ARMv8/64bit/
+LIBZYNQMPXLNXRTC_CFLAGS-y            +=	-save-temps=obj
+
+LIBZYNQMPXLNXRTC_SRCS-y         +=  $(LIBZYNQMPPLAT_DRIVERS_BASE)/rtc/rtc.c

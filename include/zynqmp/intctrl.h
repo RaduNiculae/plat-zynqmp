@@ -1,12 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Simon Kuenzer <simon.kuenzer@neclab.eu>
- *          Wei Chen <Wei.Chen@arm.com>
- *          Sharan Santhanam <sharan.santhanam@neclab.eu>
+ * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
  *
- * Copyright (c) 2019, NEC Laboratories Europe GmbH, NEC Corporation,
- *                     All rights reserved.
- * Copyright (c) 2018, Arm Ltd., All rights reserved.
+ * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,30 +32,7 @@
  * THIS HEADER MAY NOT BE EXTRACTED OR MODIFIED IN ANY WAY.
  */
 
-#ifndef __ZYNQMP_CONFIG_H__
-#define __ZYNQMP_CONFIG_H__
-
-#include <uk/config.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <uk/plat/memory.h>
-#include <xfsbl_main.h>
-
-
-/**
- * zynqmp platform configuration
- */
-struct zynqmpplat_config {
-	struct ukplat_memregion_desc heap;
-	struct ukplat_memregion_desc bstack;
-
-	struct ukplat_memregion_desc pagetable;
-	struct ukplat_memregion_desc dtb;
-	XFsblPs xfsblps;
-	uint64_t rtc_bootticks;
-};
-
-/* Initialized and defined in setup.c */
-extern struct zynqmpplat_config _libzynqmpplat_cfg;
-
-#endif /* __ZYNQMP_CONFIG_H__ */
+void intctrl_init(void);
+void intctrl_clear_irq(unsigned int irq);
+void intctrl_mask_irq(unsigned int irq);
+void intctrl_ack_irq(unsigned int irq);

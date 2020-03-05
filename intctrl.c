@@ -1,11 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Simon Kuenzer <simon.kuenzer@neclab.eu>
- *          Wei Chen <Wei.Chen@arm.com>
- *          Sharan Santhanam <sharan.santhanam@neclab.eu>
+ * Authors: Wei Chen <wei.chen@arm.com>
  *
- * Copyright (c) 2019, NEC Laboratories Europe GmbH, NEC Corporation,
- *                     All rights reserved.
  * Copyright (c) 2018, Arm Ltd., All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,31 +31,36 @@
  *
  * THIS HEADER MAY NOT BE EXTRACTED OR MODIFIED IN ANY WAY.
  */
+#include <uk/assert.h>
+#include <zynqmp/intctrl.h>
+#include <arm/cpu.h>
+#include <arm/irq.h>
+#include <gic/gic-v2.h>
+#include <zynqmp/config.h>
+#include <uk/essentials.h>
 
-#ifndef __ZYNQMP_CONFIG_H__
-#define __ZYNQMP_CONFIG_H__
+void intctrl_init(void)
+{
+	int ret;
 
-#include <uk/config.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <uk/plat/memory.h>
-#include <xfsbl_main.h>
+	/* Initialize GIC from DTB */
+	ret = _dtb_init_gic(_libzynqmpplat_cfg.dtb.base);
+	if (ret)
+		UK_CRASH("Initialize GIC from DTB failed, ret=%d\n", ret);
 
+}
 
-/**
- * zynqmp platform configuration
- */
-struct zynqmpplat_config {
-	struct ukplat_memregion_desc heap;
-	struct ukplat_memregion_desc bstack;
+void intctrl_ack_irq(unsigned int irq __unused)
+{
+	//NOP
+}
 
-	struct ukplat_memregion_desc pagetable;
-	struct ukplat_memregion_desc dtb;
-	XFsblPs xfsblps;
-	uint64_t rtc_bootticks;
-};
+void intctrl_mask_irq(unsigned int irq)
+{
+	gic_disable_irq(irq);
+}
 
-/* Initialized and defined in setup.c */
-extern struct zynqmpplat_config _libzynqmpplat_cfg;
-
-#endif /* __ZYNQMP_CONFIG_H__ */
+void intctrl_clear_irq(unsigned int irq)
+{
+	gic_enable_irq(irq);
+}
