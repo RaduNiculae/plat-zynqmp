@@ -19,6 +19,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #include <libfdt.h>
+#include <errno.h>
 #include <uk/plat/console.h>
 #include <uk/assert.h>
 #include <arm/cpu.h>
@@ -265,38 +266,37 @@ void _libplat_init_console(const void *dtb_base __maybe_unused)
 
 	baud_rate_ref = fdt_getprop(dtb_base, offset, "current-speed", &len);
 	if (!baud_rate_ref)
-		UK_CRASH("baud-rate was not found\n");
-	else {
+		baud_rate = 115200;
+	else 
 		baud_rate = fdt32_to_cpu(baud_rate_ref[0]);
-		clock_ref = fdt_getprop(dtb_base, offset, "clocks",
-					&len);
-		if (!clock_ref)
-			UK_CRASH("uart clock was not found\n");
+	clock_ref = fdt_getprop(dtb_base, offset, "clocks",
+				&len);
+	if (!clock_ref)
+		UK_CRASH("uart clock was not found\n");
 
-		/** 
-		 * Search the clock node for the properties of clock-frequency
-		 * after reading the clock-cells
-		 */
-		clock_phandle = fdt32_to_cpu(clock_ref[0]);
-		offset = fdt_node_offset_by_phandle(dtb_base, clock_phandle);
-		if (offset < 0)
-			UK_CRASH("uart clock was not found through the handle\n");
+	/** 
+	 * Search the clock node for the properties of clock-frequency
+	 * after reading the clock-cells
+	 */
+	clock_phandle = fdt32_to_cpu(clock_ref[0]);
+	offset = fdt_node_offset_by_phandle(dtb_base, clock_phandle);
+	if (offset < 0)
+		UK_CRASH("uart clock was not found through the handle\n");
 
-		clock_cells_prop = fdt_getprop(dtb_base, offset, "#clock-cells", &len);
-		if (!clock_cells_prop)
-			UK_CRASH("Clock cell property was missing\n");
+	clock_cells_prop = fdt_getprop(dtb_base, offset, "#clock-cells", &len);
+	if (!clock_cells_prop)
+		UK_CRASH("Clock cell property was missing\n");
 
-		clock_cells = fdt32_to_cpu(clock_cells_prop[0]); 
-		if (clock_cells == 0) {
-			/* Single clock producer */
-			clock_freq_ref = fdt_getprop(dtb_base, offset,
-					"clock-frequency", &len);
-			if (!clock_freq_ref)
-				UK_CRASH("Clock frequency property was missing\n");
-			clock_rate = fdt32_to_cpu(*clock_freq_ref);
-		}
-
+	clock_cells = fdt32_to_cpu(clock_cells_prop[0]); 
+	if (clock_cells == 0) {
+		/* Single clock producer */
+		clock_freq_ref = fdt_getprop(dtb_base, offset,
+				"clock-frequency", &len);
+		if (!clock_freq_ref)
+			UK_CRASH("Clock frequency property was missing\n");
+		clock_rate = fdt32_to_cpu(*clock_freq_ref);
 	}
+
 #else
 	if (!uart_bas)
 		UK_CRASH("No console UART found!\n");
@@ -309,6 +309,8 @@ void _libplat_init_console(const void *dtb_base __maybe_unused)
 	rc = setup_zynq_uartps(reg_uart_bas, baud_rate, clock_rate);
 	if (rc < 0)
 		UK_CRASH("UART setup failed!\n");
+
+	uart_initialized = 1;
 	uk_pr_info("Zynq PS UART initialized\n");
 }
 
@@ -331,14 +333,17 @@ static void xuartps_write(char a)
 
 static void xuartps_putc(char a)
 {
-	    while ((ioreg_read32(
-			 (uart_bas + CDNC_UART_CHAN_STAT_OFF)) &
+	if (!uart_initialized)
+		return;
+
+	while ((ioreg_read32(
+		(uart_bas + CDNC_UART_CHAN_STAT_OFF)) &
 		    CDNC_UART_CHAN_STAT_REG_TXFULL) !=
 			    0);
-	    ioreg_write32((uart_bas + CDNC_UART_FIFO_OFF), a);
-	    while ((ioreg_read32(
-			  uart_bas + CDNC_UART_CHAN_STAT_OFF) &
-		    CDNC_UART_CHAN_STAT_REG_TXEMPTY) == 0);
+	ioreg_write32((uart_bas + CDNC_UART_FIFO_OFF), a);
+	while ((ioreg_read32(
+		uart_bas + CDNC_UART_CHAN_STAT_OFF) &
+		CDNC_UART_CHAN_STAT_REG_TXEMPTY) == 0);
 }
 
 /* Try to get data from pl011 UART without blocking */

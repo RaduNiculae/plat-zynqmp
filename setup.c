@@ -27,7 +27,8 @@ struct zynqmpplat_config _libzynqmpplat_cfg;
 
 const void *ukplat_dtb_get(void)
 {
-	return _libzynqmpplat_cfg.dtb.base;
+	uk_pr_info("Dtb address %p\n", _libzynqmpplat_cfg.dtb.base);
+	return (uintptr_t)_libzynqmpplat_cfg.dtb.base;
 }
 
 static void _libzynqplat_mem_setup(void)
