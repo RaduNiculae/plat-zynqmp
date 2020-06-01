@@ -58,7 +58,7 @@ $(ZYNQMP_DEBUG_IMAGE): $(ZYNQMP_ALIBS) $(ZYNQMP_ALIBS-y) $(ZYNQMP_OLIBS) $(ZYNQM
 			-Wl$(comma)--end-group \
 			-o $(ZYNQMP_IMAGE).ld.o)
 	$(call build_cmd,OBJCOPY,,$(ZYNQMP_IMAGE).o,\
-		$(OBJCOPY) -w -G _boot_zynqmp\
+		$(OBJCOPY) -w -G _vector_table\
 			$(ZYNQMP_IMAGE).ld.o $(ZYNQMP_IMAGE).o)
 	$(call build_cmd,LD,,$@,\
 	       $(LD) $(LDFLAGS) $(LDFLAGS-y) \

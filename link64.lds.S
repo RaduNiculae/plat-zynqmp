@@ -40,7 +40,7 @@
 
 OUTPUT_FORMAT("elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
-ENTRY(_boot_zynqmp)
+ENTRY(_vector_table)
 
 _STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x2000;
 _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x10000;
@@ -198,6 +198,7 @@ SECTIONS {
 		. = ALIGN(64);
 		_el3_stack_end = .;
 		. += _STACK_SIZE;
+		_el3_stack = .;
 	} 
 	
 	
