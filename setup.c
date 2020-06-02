@@ -3,10 +3,13 @@
 #include <zynqmp/config.h>
 #include <uk/essentials.h>
 #include <libfdt.h>
+#include <arm/arm64/mm.h>
 #include <uk/plat/common/sections.h>
 #include <xparameters.h>
 #include <uk/essentials.h>
 #include <rtc/rtc.h>
+
+#define STACK_ADDRESS   (XPAR_PSU_OCM_RAM_0_S_AXI_HIGHADDR  - 0xFFF)
 
 struct zynqmpplat_config _libzynqmpplat_cfg = { 0 };
 static const char *appname = CONFIG_UK_NAME;
@@ -14,6 +17,7 @@ static const char *appname = CONFIG_UK_NAME;
 extern char *_heap_start;
 extern char *_heap_end;
 extern char *_STACK_SIZE;
+extern char *_HEAP_SIZE;
 extern char *__uk_dtb_start;
 
 extern void _libplat_newstack(uint64_t stack_start,
@@ -33,13 +37,25 @@ const void *ukplat_dtb_get(void)
 
 static void _libzynqplat_mem_setup(void)
 {
-	_libzynqmpplat_cfg.heap.base = (void *) &_heap_start;
-	_libzynqmpplat_cfg.heap.len = (uintptr_t) &_heap_end -
-				(uintptr_t)&_heap_start;
+	__u8 *page_table_end;
+	__u32 size;
+
+	_libzynqmpplat_cfg.pagetable.base = ALIGN_DOWN((uintptr_t)__END,
+			                              __PAGE_SIZE);
+	_libzynqmpplat_cfg.pagetable.len   = ALIGN_UP(page_table_size,
+			                                __PAGE_SIZE);
+	page_table_end = _libzynqmpplat_cfg.pagetable.base +
+		_libzynqmpplat_cfg.pagetable.len;
+	size = (__u32)&_STACK_SIZE + (__u32)&_HEAP_SIZE;
+
+	_libzynqmpplat_cfg.heap.base =
+		((uintptr_t)STACK_ADDRESS) - size;
+	_libzynqmpplat_cfg.heap.len = &_HEAP_SIZE;
+	size -= (__u32)&_HEAP_SIZE;
 
 	_libzynqmpplat_cfg.bstack.base = (void *)
-			((uintptr_t)XPAR_PSU_OCM_RAM_0_S_AXI_HIGHADDR);
-	_libzynqmpplat_cfg.bstack.len = (uintptr_t)&_STACK_SIZE;
+			((uintptr_t)STACK_ADDRESS);
+	_libzynqmpplat_cfg.bstack.len = (uintptr_t)size;
 
 }
 
