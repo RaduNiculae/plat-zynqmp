@@ -303,8 +303,6 @@ void _libplat_init_console(const void *dtb_base __maybe_unused)
 	reg_uart_bas = (uk_reg32_t )uart_bas;
 #endif /* CONFIG_ZYNQMP_LIBOFW */
 
-	uk_pr_info("Found xuart on: 0x%lx\n", reg_uart_bas);
-
 	init_zynq_uartps(reg_uart_bas);
 	rc = setup_zynq_uartps(reg_uart_bas, baud_rate, clock_rate);
 	if (rc < 0)

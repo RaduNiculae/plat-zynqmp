@@ -38,22 +38,26 @@
 #include <arm/cpu_defs.h>
 #include <xparameters.h>
 /*
+ * TODO: Address the memory map for the page table Zyqmp platform
  * The following is the Memory Layout of AArch64 Virtual Machine
  * | 0 - 0x3FFFFFFF |   0x40000000 - 0x7FFFFFFFFF           |  512GB - 1TB   |
  * --------------------------------------------------------------------------
  * |  DEVICES MMIO  | DTB|TEXT|DATA|BSS|PAGETABLE|BOOTSTACK | PCI-e High Mem |
  * --------------------------------------------------------------------------
  */
-#define DEVICE_ADDR_START 0
-#define DEVICE_ADDR_SIZE  0x40000000
-#define RAM_ADDR_START    0x40000000
-#define L2_RAM_ADDR_START 0xC0000000
-#define RAM_L2_ENTRIES    255
-#define RAM_ADDR_SIZE     (0x40000000 * RAM_L2_ENTRIES)
+#define DEVICE_ADDR_START_PA 0xC0000000
+#define DEVICE_ADDR_SIZE     0x40000000
+#define DEVICE_ADDR_START_VA 0x0
+#define RAM_ADDR_START       0x00000000
+#define RAM_SIZE	     0x40000000
+#define RAM_L2_ENTRIES       255
+
+#ifdef CONFIG_PLAT_KVM
 #define PCIE_ADDR_START   0x8000000000
 #define PCIE_L2_ENTRIES   512
 #define PCIE_ADDR_SIZE    0x8000000000
 #define OCM_LENGTH (XPAR_PSU_OCM_RAM_0_S_AXI_HIGHADDR - XPAR_PSU_OCM_RAM_0_S_AXI_BASEADDR + 1)
+#endif /* CONFIG_PLAT_KVM */
 
 /*
  * As we use VA == PA mapping, so the VIRT_BITS must be the same
@@ -74,8 +78,6 @@ ENTRY(create_pagetables)
 	/* Pagetable starts from _end */
 	ldr x14, =_end
 
-	mov x15, #(OCM_LENGTH)
-
 	/*
 	 * We have 2 L1 tables to map 0 ~ 512GB, 512 GB ~ 1TB.
 	 * Link these two tables to L0 entries#0, #1
@@ -87,27 +89,28 @@ ENTRY(create_pagetables)
 	bl  link_l0_pagetable
 
 	/*
-	 * Using 1GiB block to map device address space (0x0 ~ 0x3fffffff)
+	 * Using 1GiB block to map device address space (0xC0000000 ~ 0xffffffff)
 	 */
 	add x6, x14, #L1_TABLE_OFFSET
 	ldr x7, =SECT_ATTR_DEVICE_nGnRE
-	mov x8, #DEVICE_ADDR_START
-	mov x9, x8
+	mov x8, #DEVICE_ADDR_START_PA
+	mov x9, #DEVICE_ADDR_START_PA
 	mov x10, #1
 	bl  build_l1_block_pagetable
 
 	/*
 	 * Using 1GiB block to map RAM address space
-	 * (0x40000000 ~ (256GiB -1)). The RAM areas that contain kernel
+	 * (0x00000000 ~ (3GiB -1)). The RAM areas that contain kernel
 	 * sections will be update later.
 	 */
 	add x6, x14, #L1_TABLE_OFFSET
 	ldr x7, =SECT_ATTR_NORMAL
 	mov x8, #RAM_ADDR_START
 	mov x9, x8
-	mov x10, #255
+	mov x10, #3
 	bl  build_l1_block_pagetable
 
+#if 0
 	/*
 	 * Using 1GiB block to map high PCIe address space
 	 * (0x512GiB ~ (1TiB -1)).
@@ -119,30 +122,34 @@ ENTRY(create_pagetables)
 	mov x9, x8
 	mov x10, #512
 	bl  build_l1_block_pagetable
-
+#endif
 	/*
 	 * The text, bss, data and other sections are placed at
-	 * 0xC0000000 ~ 0xffffffff. We use 4k granularity to manage
+	 * 0x00000000 ~ 0x3FFFFFFF. We use 4k granularity to manage
 	 * their attributes to improve security.
 	 * L1 -> L2 -> L3 (4K)
 	 */
 	/* 1st: Build a L2 block pagetable */
 	add x6, x14, #L2_TABLE_OFFSET
 	ldr x7, =SECT_ATTR_NORMAL
-	mov x8, #L2_RAM_ADDR_START
+	mov x8, #RAM_ADDR_START
 	mov x9, x8
 	mov x10, 512
 	bl  build_l2_block_pagetable
 
 	/* 2nd: Link this L2 block pagetable to L1 entry */
 	add x6, x14, #L1_TABLE_OFFSET
-	mov x8, #L2_RAM_ADDR_START
+	mov x8, #RAM_ADDR_START
 	add x9, x14, #L2_TABLE_OFFSET
 	bl  link_l1_pagetable
 
 	/* 3rd: Build a L3 pagetable for image occupied memory */
 	add x16, x14, #L3_TABLE_OFFSET
-	mov x17, #XPAR_PSU_OCM_RAM_0_S_AXI_BASEADDR
+	/**
+	 * TODO:
+	 * Fetch the address of the image start and cover that.
+	 */
+	mov x17, #RAM_ADDR_START
 
 	mov x6, x16
 	ldr x7, =SECT_ATTR_NORMAL
@@ -160,8 +167,8 @@ ENTRY(create_pagetables)
 
 	/* Check whether the image mapping has been done */
 	add x16, x16, #__PAGE_SIZE
-	add x17, x17, #(OCM_LENGTH)
-	sub x15, x15, #(OCM_LENGTH)
+	add x17, x17, #(L2_SIZE)
+	sub x15, x15, #(L2_SIZE)
 	cbnz x15, 1b
 
 	/* 5th: Update dtb section to readonly */

@@ -63,7 +63,7 @@ static void _libzynqplat_mem_setup(void)
 void _libzynqmpplat_entry2(void *args __unused)
 {
 	/* Initialize the zynq platform */
-	XFsbl_Initialize(&_libzynqmpplat_cfg.xfsblps);
+	//XFsbl_Initialize(&_libzynqmpplat_cfg.xfsblps);
 
 
 #ifdef CONFIG_ZYNQMP_UARTPS
