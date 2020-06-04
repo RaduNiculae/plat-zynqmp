@@ -240,6 +240,9 @@ ENTRY(create_pagetables)
 
 	mov x19, #RAM_L3ADDR_START
 	sub x15, x6, x19
+	add x15, x15, #L2_SIZE
+	lsr x15, x15, #L2_SHIFT
+	lsl x15, x15, #L2_SHIFT
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
 1:
