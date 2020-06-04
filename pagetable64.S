@@ -47,10 +47,14 @@
  */
 #define DEVICE_ADDR_START_PA 0xC0000000
 #define DEVICE_ADDR_SIZE     0x40000000
-#define DEVICE_ADDR_START_VA 0x0
+#define DEVICE_ADDR_START_VA 0xC0000000
+#define RAM_ADDR_START       0x00000000
+#define RAM_L3ADDR_START     0x10000000
 #define RAM_ADDR_START       0x00000000
 #define RAM_SIZE	     0x40000000
 #define RAM_L2_ENTRIES       255
+#define HEAP_SIZE		     0x00400000
+#define STACK_SIZE			 0x00200000
 
 #ifdef CONFIG_PLAT_KVM
 #define PCIE_ADDR_START   0x8000000000
@@ -59,6 +63,28 @@
 #define OCM_LENGTH (XPAR_PSU_OCM_RAM_0_S_AXI_HIGHADDR - XPAR_PSU_OCM_RAM_0_S_AXI_BASEADDR + 1)
 #endif /* CONFIG_PLAT_KVM */
 
+.global heap_ptr
+.data
+heap_ptr:
+    .dword 0x0
+
+.global heap_size
+.data
+heap_size:
+    .dword 0x0
+
+.global stack_ptr
+.data
+stack_ptr:
+    .dword 0x0
+
+.global stack_size
+.data
+stack_size:
+    .dword 0x0
+
+
+.text
 /*
  * As we use VA == PA mapping, so the VIRT_BITS must be the same
  * as PA_BITS. We can get PA_BITS from ID_AA64MMFR0_EL1.PARange.
@@ -85,7 +111,7 @@ ENTRY(create_pagetables)
 	mov x6, x14
 	mov x8, #0
 	add x9, x14, #L1_TABLE_OFFSET
-	mov x10, #2
+	mov x10, #1
 	bl  link_l0_pagetable
 
 	/*
@@ -143,13 +169,28 @@ ENTRY(create_pagetables)
 	add x9, x14, #L2_TABLE_OFFSET
 	bl  link_l1_pagetable
 
+	/* 1st: Build a L2 block pagetable */
+	add x6, x14, #(L2_TABLE_OFFSET)
+	add x6, x6, __PAGE_SIZE
+	ldr x7, =SECT_ATTR_DEVICE_nGnRE
+	mov x8, #DEVICE_ADDR_START_PA
+	mov x9, x8
+	mov x10, 512
+	bl  build_l2_block_pagetable
+
+	/* 2nd: Link this L2 block pagetable to L1 entry */
+	add x6, x14, #L1_TABLE_OFFSET
+	mov x8, #DEVICE_ADDR_START_VA
+	add x9, x14, #(L2_TABLE_OFFSET + __PAGE_SIZE)
+	bl  link_l1_pagetable
+
 	/* 3rd: Build a L3 pagetable for image occupied memory */
 	add x16, x14, #L3_TABLE_OFFSET
 	/**
 	 * TODO:
 	 * Fetch the address of the image start and cover that.
 	 */
-	mov x17, #RAM_ADDR_START
+	mov x17, #RAM_L3ADDR_START
 
 	mov x6, x16
 	ldr x7, =SECT_ATTR_NORMAL
@@ -158,6 +199,32 @@ ENTRY(create_pagetables)
 	lsr x10, x15, L3_SHIFT
 	bl  build_l3_pagetable
 
+	/* Allocate the heap and the stack */
+	add x18, x17, x15
+	mov x19, #(HEAP_SIZE) 
+	ldr x20, =heap_size
+	str x19, [x20]
+
+	mov x21, #(STACK_SIZE)
+	ldr x20, =stack_size
+	str x21, [x20]
+
+	add x19, x19, x21
+
+	ldr x7, =SECT_ATTR_NORMAL
+	mov x8, x18
+	mov x9, x18
+	lsr x10, x19, L3_SHIFT
+	bl  build_l3_pagetable
+
+	ldr x20, =heap_ptr
+	str x18,[x20]
+
+	add x18, x18, x19
+	ldr x20, =stack_ptr
+	str x18,[x20]
+
+	add x15, x15, x19
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
 1:

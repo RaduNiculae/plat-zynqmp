@@ -3,7 +3,7 @@
 #include <zynqmp/config.h>
 #include <uk/essentials.h>
 #include <libfdt.h>
-#include <arm/arm64/mm.h>
+#include <arm/mm.h>
 #include <uk/plat/common/sections.h>
 #include <xparameters.h>
 #include <uk/essentials.h>
@@ -46,16 +46,12 @@ static void _libzynqplat_mem_setup(void)
 			                                __PAGE_SIZE);
 	page_table_end = _libzynqmpplat_cfg.pagetable.base +
 		_libzynqmpplat_cfg.pagetable.len;
-	size = (__u32)&_STACK_SIZE + (__u32)&_HEAP_SIZE;
 
-	_libzynqmpplat_cfg.heap.base =
-		((uintptr_t)STACK_ADDRESS) - size;
-	_libzynqmpplat_cfg.heap.len = &_HEAP_SIZE;
-	size -= (__u32)&_HEAP_SIZE;
+	_libzynqmpplat_cfg.heap.base = (void *)heap_ptr;
+	_libzynqmpplat_cfg.heap.len = heap_size;
 
-	_libzynqmpplat_cfg.bstack.base = (void *)
-			((uintptr_t)STACK_ADDRESS);
-	_libzynqmpplat_cfg.bstack.len = (uintptr_t)size;
+	_libzynqmpplat_cfg.bstack.base = (void *)stack_ptr;
+	_libzynqmpplat_cfg.bstack.len = (uintptr_t)stack_size;
 
 }
 
@@ -96,7 +92,11 @@ void _libplat_start(void *dtb_pointer __unused)
 	_libzynqmpplat_cfg.dtb.len = fdt_totalsize(__uk_dtb_start);
 
 	_libzynqplat_mem_setup();
+#ifdef CONFIG_CHANGE_STACK
 	_libplat_newstack(_libzynqmpplat_cfg.bstack.base,
 			_libzynqmpplat_entry2, NULL);
+#else
+	_libzynqmpplat_entry2(NULL);
+#endif
 
 }

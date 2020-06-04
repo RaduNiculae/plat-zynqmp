@@ -44,16 +44,8 @@ ENTRY(_vector_table)
 
 _STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x1000;
 _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x10000;
+_START_ADDRESS =  0x10000000;
 
-
-/*
-MEMORY
-{
-	psu_ocm_ram_0_S_AXI_BASEADDR : ORIGIN = 0xFFFC0000, LENGTH = 0x00029D00
-	psu_ocm_ram_1_S_AXI_BASEADDR : ORIGIN = 0xFFFE9E00, LENGTH = 0x00000200
-	psu_ocm_ram_2_S_AXI_BASEADDR : ORIGIN = 0xFFFF0040, LENGTH = 0x0000FDC0
-}
-*/
 
 /*
  * We use mmu to control each section's attribute, so the boundaries
@@ -64,7 +56,7 @@ MEMORY
  */
 SECTIONS {
 
-	. = XPAR_PSU_OCM_RAM_0_S_AXI_BASEADDR;
+	. = _START_ADDRESS;
 
 	/* Place DTB binary at the beginning of the RAM */
 	_dtb = .;
