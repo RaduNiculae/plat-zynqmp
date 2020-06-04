@@ -24,6 +24,7 @@
 #include <uk/assert.h>
 #include <arm/cpu.h>
 #include <uk/essentials.h>
+#include <xparameters.h>
 
 #define UART_FIFO_SIZE  64
 
@@ -115,11 +116,11 @@
 /*
  * Xilinx UARTPS base address
  */
-#if defined(CONFIG_EARLY_PRINT_XUARTPS_ADDR)
+#if defined(XPAR_PSU_UART_1_BASEADDR)
 static uint8_t uart_initialized = 1;
-static uk_reg32_t uart_bas = CONFIG_EARLY_PRINT_XUARTPS_ADDR;
+static uk_reg32_t uart_bas = XPAR_PSU_UART_1_BASEADDR;
 static int baud_rate = 115200;
-UK_LIB_PARAM(baud_rate, int);
+static int clock_rate = XPAR_PSU_UART_1_UART_CLK_FREQ_HZ;
 #else
 static uint8_t uart_initialized = 0;
 static uk_reg32_t uart_bas;
@@ -243,7 +244,7 @@ void _libplat_init_console(const void *dtb_base __maybe_unused)
 	uint32_t *baud_rate_ref = NULL;
 	uint32_t *clock_ref, *clock_freq_ref, *clock_cells_prop, clock_phandle;
 
-#ifdef CONFIG_ZYNQMP_LIBOFW 
+#ifndef CONFIG_ZYNQMP_LIBOFW 
 	offset = fdt_node_offset_by_compatible(dtb_base,
 					-1, "xlnx,xuartps");
 	if (offset < 0)

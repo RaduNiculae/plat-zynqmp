@@ -45,7 +45,9 @@
  * |  DEVICES MMIO  | DTB|TEXT|DATA|BSS|PAGETABLE|BOOTSTACK | PCI-e High Mem |
  * --------------------------------------------------------------------------
  */
-#define DEVICE_ADDR_START_PA 0xC0000000
+#define DEVICE_ADDR_START_PA   0xC0000000
+#define DEVICE_L3ADDR_START_PA 0xF0000000
+#define DEVICE_L3ADDR_SIZE     0x10000000
 #define DEVICE_ADDR_SIZE     0x40000000
 #define DEVICE_ADDR_START_VA 0xC0000000
 #define RAM_ADDR_START       0x00000000
@@ -199,8 +201,19 @@ ENTRY(create_pagetables)
 	lsr x10, x15, L3_SHIFT
 	bl  build_l3_pagetable
 
+	/* Mapping the device memory into the address range */
+	/** 
+	 * Address of x6 already point to page.
+	 */
+	add x6, x6, #__PAGE_SIZE
+	ldr x7, =SECT_ATTR_DEVICE_nGnRE
+	mov x8, #(DEVICE_L3ADDR_START_PA)
+	mov x9, x8
+	mov x10, #(DEVICE_L3ADDR_SIZE)
+	lsr x10, x10, #L3_SHIFT
+	bl  build_l3_pagetable
+
 	/* Allocate the heap and the stack */
-	add x18, x17, x15
 	mov x19, #(HEAP_SIZE) 
 	ldr x20, =heap_size
 	str x19, [x20]
@@ -211,9 +224,10 @@ ENTRY(create_pagetables)
 
 	add x19, x19, x21
 
+	add x6, x6, #__PAGE_SIZE
 	ldr x7, =SECT_ATTR_NORMAL
-	mov x8, x18
-	mov x9, x18
+	mov x8, x6
+	mov x9, x6
 	lsr x10, x19, L3_SHIFT
 	bl  build_l3_pagetable
 
@@ -224,7 +238,8 @@ ENTRY(create_pagetables)
 	ldr x20, =stack_ptr
 	str x18,[x20]
 
-	add x15, x15, x19
+	mov x19, #RAM_L3ADDR_START
+	sub x15, x6, x19
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
 1:
@@ -237,6 +252,7 @@ ENTRY(create_pagetables)
 	add x17, x17, #(L2_SIZE)
 	sub x15, x15, #(L2_SIZE)
 	cbnz x15, 1b
+
 
 	/* 5th: Update dtb section to readonly */
 	ldr x8, =_dtb
