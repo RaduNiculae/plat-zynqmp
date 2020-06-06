@@ -55,8 +55,8 @@
 #define RAM_ADDR_START       0x00000000
 #define RAM_SIZE	     0x40000000
 #define RAM_L2_ENTRIES       255
-#define HEAP_SIZE		     0x00400000
-#define STACK_SIZE			 0x00200000
+#define HEAP_SIZE	     0x00400000
+#define STACK_SIZE	     0x00200000
 
 #ifdef CONFIG_PLAT_KVM
 #define PCIE_ADDR_START   0x8000000000
@@ -93,6 +93,32 @@ stack_size:
  */
 virt_bits:
 	.byte 32, 36, 40, 42, 44, 48
+
+ENTRY(fetch_p3_table_size)
+	lsr x17, x15, #9
+
+	/**
+	 * Address size.
+	 */
+	mov x10, #DEVICE_L3ADDR_SIZE
+	lsr x10, x10, #9
+
+	add x17, x17, x10
+
+	mov x10, #(HEAP_SIZE)
+	mov x9, #(STACK_SIZE)
+	add x10, x9, x10
+
+	lsr x10, x10, #9
+	add x17, x17, x10
+	ret
+END(fetch_p3_table_size)
+
+ENTRY(get_stack_ptr)
+	ldr x20, =stack_ptr
+	ldr x18, [x20]
+	ret
+END(get_stack_ptr)
 
 /*
  * We will use a direct map for physical address and virtual address
@@ -193,56 +219,18 @@ ENTRY(create_pagetables)
 	 * Fetch the address of the image start and cover that.
 	 */
 	mov x17, #RAM_L3ADDR_START
-
 	mov x6, x16
 	ldr x7, =SECT_ATTR_NORMAL
 	mov x8, x17
 	mov x9, x17
 	lsr x10, x15, L3_SHIFT
 	bl  build_l3_pagetable
-
-	/* Mapping the device memory into the address range */
-	/** 
-	 * Address of x6 already point to page.
+	/**
+	 * x24 to the last reference to the last l3 page reference
 	 */
-	add x6, x6, #__PAGE_SIZE
-	ldr x7, =SECT_ATTR_DEVICE_nGnRE
-	mov x8, #(DEVICE_L3ADDR_START_PA)
-	mov x9, x8
-	mov x10, #(DEVICE_L3ADDR_SIZE)
-	lsr x10, x10, #L3_SHIFT
-	bl  build_l3_pagetable
-
-	/* Allocate the heap and the stack */
-	mov x19, #(HEAP_SIZE) 
-	ldr x20, =heap_size
-	str x19, [x20]
-
-	mov x21, #(STACK_SIZE)
-	ldr x20, =stack_size
-	str x21, [x20]
-
-	add x19, x19, x21
-
-	add x6, x6, #__PAGE_SIZE
-	ldr x7, =SECT_ATTR_NORMAL
-	mov x8, x6
-	mov x9, x6
-	lsr x10, x19, L3_SHIFT
-	bl  build_l3_pagetable
-
-	ldr x20, =heap_ptr
-	str x18,[x20]
-
-	add x18, x18, x19
-	ldr x20, =stack_ptr
-	str x18,[x20]
+	mov x24, x6
 
 	mov x19, #RAM_L3ADDR_START
-	sub x15, x6, x19
-	add x15, x15, #L2_SIZE
-	lsr x15, x15, #L2_SHIFT
-	lsl x15, x15, #L2_SHIFT
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
 1:
@@ -255,7 +243,6 @@ ENTRY(create_pagetables)
 	add x17, x17, #(L2_SIZE)
 	sub x15, x15, #(L2_SIZE)
 	cbnz x15, 1b
-
 
 	/* 5th: Update dtb section to readonly */
 	ldr x8, =_dtb
@@ -286,6 +273,98 @@ ENTRY(create_pagetables)
 	mov x9, x8
 	lsr x10, x10, L3_SHIFT
 	bl  build_l3_pagetable
+
+	/* Mapping the device memory into the address range */
+	/** 
+	 * Address of x6 already point to page.
+	 */
+	mov x6, x24
+	add x6, x6, #__PAGE_SIZE
+	mov x16, x6
+	ldr x7, =SECT_ATTR_DEVICE_nGnRE
+	mov x8, #(DEVICE_L3ADDR_START_PA)
+	mov x9, x8
+	mov x10, #(DEVICE_L3ADDR_SIZE)
+	lsr x10, x10, #L3_SHIFT
+	bl  build_l3_pagetable
+	mov x24, x6
+
+	add x6, x14, #L2_TABLE_OFFSET
+	add x6, x6, #__PAGE_SIZE
+	mov x17, #(DEVICE_L3ADDR_START_PA)
+	mov x23, #(DEVICE_L3ADDR_SIZE)
+2:
+	mov x8, x17
+	mov x9, x16
+	bl  link_l2_pagetable
+	add x16, x16, #__PAGE_SIZE
+	add x17, x17, #(L2_SIZE)
+	sub x23, x23, #(L2_SIZE)
+	cbnz x23, 2b
+
+	/* Allocate the heap and the stack */
+	mov x19, #(HEAP_SIZE) 
+	ldr x20, =heap_size
+	str x19, [x20]
+
+	mov x21, #(STACK_SIZE)
+	ldr x20, =stack_size
+	str x21, [x20]
+
+	/* Compute the heap and the stack size */
+	add x19, x19, x21
+	/**
+	 * The number of pages required by the stack and the heap page table.
+	 * PAGE_SHIFT + 9-bits for the each 
+	 */
+	lsr x21, x19, #9
+
+	mov x6, x24
+	add x6, x6, #__PAGE_SIZE
+	mov x16, x6
+	add x17, x6, x21
+	ldr x7, =SECT_ATTR_NORMAL
+	mov x8, x17
+	mov x9, x8
+	lsr x10, x21, L3_SHIFT
+	bl  build_l3_pagetable
+
+	/* 4th: Link this L3 pagetable to L2 entry */
+	add x6, x14, #L2_TABLE_OFFSET
+	add x15, x21, #L2_SIZE
+	lsr x15, x15, #L2_SHIFT
+	lsl x15, x15, #L2_SHIFT
+3:
+	mov x8, x17
+	mov x9, x16
+	bl  link_l2_pagetable
+
+	/* Check whether the image mapping has been done */
+	add x16, x16, #__PAGE_SIZE
+	add x17, x17, #(L2_SIZE)
+	sub x15, x15, #(L2_SIZE)
+	cbnz x15, 3b
+
+
+	ldr x20, =heap_ptr
+	str x17,[x20]
+
+	/**
+	 * Zero out the stack
+	 */
+	mov x20, x18
+	mov x19, #(HEAP_SIZE)
+	add x18, x18, x19
+4:
+	stp xzr, xzr, [x20], #16
+	stp xzr, xzr, [x20], #16
+	stp xzr, xzr, [x20], #16
+	stp xzr, xzr, [x20], #16
+	cmp x20, x18
+	b.lo 4b
+
+	ldr x20, =stack_ptr
+	str x18,[x20]
 
 	/* Restore the Link register */
 	mov x30, x5

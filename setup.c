@@ -47,16 +47,16 @@ static void _libzynqplat_mem_setup(void)
 	page_table_end = _libzynqmpplat_cfg.pagetable.base +
 		_libzynqmpplat_cfg.pagetable.len;
 
-	_libzynqmpplat_cfg.heap.base = (void *)heap_ptr;
+	_libzynqmpplat_cfg.heap.base = heap_ptr;
 	_libzynqmpplat_cfg.heap.len = heap_size;
 
-	_libzynqmpplat_cfg.bstack.base = (void *)stack_ptr;
-	_libzynqmpplat_cfg.bstack.len = (uintptr_t)stack_size;
+	_libzynqmpplat_cfg.bstack.base = stack_ptr;
+	_libzynqmpplat_cfg.bstack.len = stack_size;
 
 }
 
 
-void _libzynqmpplat_entry2(void *args __unused)
+void _libzynqmpplat_entry2(void)
 {
 	/* Initialize the zynq platform */
 	//XFsbl_Initialize(&_libzynqmpplat_cfg.xfsblps);
@@ -92,11 +92,5 @@ void _libplat_start(void *dtb_pointer __unused)
 	_libzynqmpplat_cfg.dtb.len = fdt_totalsize(__uk_dtb_start);
 
 	_libzynqplat_mem_setup();
-#ifdef CONFIG_CHANGE_STACK
-	_libplat_newstack(_libzynqmpplat_cfg.bstack.base,
-			_libzynqmpplat_entry2, NULL);
-#else
-	_libzynqmpplat_entry2(NULL);
-#endif
-
+	_libzynqmpplat_entry2();
 }
