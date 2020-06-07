@@ -333,7 +333,7 @@ ENTRY(create_pagetables)
 	mov x6, x24
 	mov x16, x6
 	add x17, x6, x21
-	add x17, x19, #L2_SIZE
+	add x17, x17, #L2_SIZE
 	lsr x17, x17, #L2_SHIFT
 	lsl x17, x17, #L2_SHIFT
 	ldr x7, =SECT_ATTR_NORMAL
@@ -341,6 +341,10 @@ ENTRY(create_pagetables)
 	mov x9, x8
 	lsr x10, x19, L3_SHIFT
 	bl  build_l3_pagetable
+	/**
+	 * Store the heap pointer
+	 */
+	mov x24, x17
 
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
@@ -361,24 +365,24 @@ ENTRY(create_pagetables)
 
 
 	ldr x20, =heap_ptr
-	str x17,[x20]
+	str x24,[x20]
 
 	/**
 	 * Zero out the stack
 	 */
-	mov x20, x18
+	mov x20, x24
 	mov x19, #(HEAP_SIZE)
-	add x18, x18, x19
+	add x20, x20, x19
 4:
-	stp xzr, xzr, [x20], #16
-	stp xzr, xzr, [x20], #16
-	stp xzr, xzr, [x20], #16
-	stp xzr, xzr, [x20], #16
-	cmp x20, x18
+	stp xzr, xzr, [x24], #16
+	stp xzr, xzr, [x24], #16
+	stp xzr, xzr, [x24], #16
+	stp xzr, xzr, [x24], #16
+	cmp x20, x24
 	b.lo 4b
 
 	ldr x20, =stack_ptr
-	str x18,[x20]
+	str x24,[x20]
 
 	/* Restore the Link register */
 	mov x30, x5
