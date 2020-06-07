@@ -120,6 +120,18 @@ ENTRY(get_stack_ptr)
 	ret
 END(get_stack_ptr)
 
+ENTRY(get_stack_size)
+	add x27, x27, #L2_SIZE
+	lsr x27, x27, #L2_SHIFT
+	lsl x27, x27, #L2_SHIFT
+
+	mov x10, #(HEAP_SIZE)
+	mov x9, #(STACK_SIZE)
+	add x10, x9, x10
+	add x27, x27, x10
+	ret
+END(get_stack_size)
+
 /*
  * We will use a direct map for physical address and virtual address
  * (PA = VA 1:1 mapping)
@@ -279,7 +291,6 @@ ENTRY(create_pagetables)
 	 * Address of x6 already point to page.
 	 */
 	mov x6, x24
-	add x6, x6, #__PAGE_SIZE
 	mov x16, x6
 	ldr x7, =SECT_ATTR_DEVICE_nGnRE
 	mov x8, #(DEVICE_L3ADDR_START_PA)
@@ -320,18 +331,21 @@ ENTRY(create_pagetables)
 	lsr x21, x19, #9
 
 	mov x6, x24
-	add x6, x6, #__PAGE_SIZE
 	mov x16, x6
 	add x17, x6, x21
+	add x17, x19, #L2_SIZE
+	lsr x17, x17, #L2_SHIFT
+	lsl x17, x17, #L2_SHIFT
 	ldr x7, =SECT_ATTR_NORMAL
 	mov x8, x17
 	mov x9, x8
-	lsr x10, x21, L3_SHIFT
+	lsr x10, x19, L3_SHIFT
 	bl  build_l3_pagetable
 
 	/* 4th: Link this L3 pagetable to L2 entry */
 	add x6, x14, #L2_TABLE_OFFSET
-	add x15, x21, #L2_SIZE
+	mov x15, #0
+	add x15, x19, #L2_SIZE
 	lsr x15, x15, #L2_SHIFT
 	lsl x15, x15, #L2_SHIFT
 3:
