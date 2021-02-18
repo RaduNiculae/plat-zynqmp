@@ -55,8 +55,8 @@
 #define RAM_ADDR_START       0x00000000
 #define RAM_SIZE	     0x40000000
 #define RAM_L2_ENTRIES       255
-#define HEAP_SIZE	     0x00400000
-#define STACK_SIZE	     0x00200000
+#define HEAP_SIZE	     0x01000000
+#define STACK_SIZE	     0x00004000
 
 #ifdef CONFIG_PLAT_KVM
 #define PCIE_ADDR_START   0x8000000000

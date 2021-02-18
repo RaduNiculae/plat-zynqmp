@@ -55,6 +55,16 @@ static void _libzynqplat_mem_setup(void)
 
 }
 
+size_t _libzynqmpplat_heap_size(size_t heap_avail)
+{
+	return ((uintptr_t)_libzynqmpplat_cfg.heap.len) - heap_avail;
+}
+
+size_t _libzynqmpplat_stack_size(uintptr_t curr_sp)
+{
+	return ((uintptr_t)_libzynqmpplat_cfg.bstack.base) - curr_sp;
+}
+
 
 void _libzynqmpplat_entry2(void)
 {

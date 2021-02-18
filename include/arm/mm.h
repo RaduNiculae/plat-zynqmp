@@ -83,6 +83,7 @@ extern uintptr_t heap_ptr;
 extern uint64_t heap_size;
 extern uintptr_t stack_ptr;
 extern uint64_t stack_size;
+extern uint64_t boot_ticks;
 
 #endif /*__ASSEMBLY__ */
 
