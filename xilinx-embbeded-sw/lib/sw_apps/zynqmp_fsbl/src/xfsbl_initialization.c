@@ -1913,10 +1913,10 @@ static u32 XFsbl_TcmInit(XFsblPs * FsblInstancePtr)
 
 	if (FsblInstancePtr->ProcessorID == XIH_PH_ATTRB_DEST_CPU_A53_0) {
 		/* If TCM ECC has to be initialized for A53, power it up first */
-		Status = XFsbl_PowerUpMemory(XFSBL_R5_L_TCM);
+		/*Status = XFsbl_PowerUpMemory(XFSBL_R5_L_TCM);
 		if (Status != XFSBL_SUCCESS) {
 			goto END;
-		}
+		}*/
 	}
 
 	/* Do ECC Initialization of TCM if required */

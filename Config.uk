@@ -73,5 +73,11 @@ config ZYNQMP_XLNX_RTC
 	help
 		ZynqMP RTC compatible xlnx-zynmp.rtc
 
+config ZYNQMP_GPIO_DRIVER
+  bool "FreeRtos GPIO driver"
+  default n
+  depends on ARCH_ARM_64
+  depends on LIBUKDRIVERSHIMLAYER
+
 endmenu
 endif
